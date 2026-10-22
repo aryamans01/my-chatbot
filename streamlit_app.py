@@ -1,17 +1,16 @@
+import os
+
 import streamlit as st
 from google import genai
 
-# On Streamlit Cloud the key comes from "Secrets" (safe).
-import os
-
+# The key is read by NAME from Render/Streamlit settings. Do not paste it here.
 API_KEY = os.environ.get("AQ.Ab8RN6KfugFN8KNTcgeqmwyByrsBXGwFSwz5CNtC0SRHo3B4Rg")
 if not API_KEY:
     try:
         API_KEY = st.secrets["AQ.Ab8RN6KfugFN8KNTcgeqmwyByrsBXGwFSwz5CNtC0SRHo3B4Rg"]
     except Exception:
-        API_KEY = "AQ.Ab8RN6KfugFN8KNTcgeqmwyByrsBXGwFSwz5CNtC0SRHo3B4Rg"  # LOCAL ONLY
-        
-# Models are tried in order. If one is busy or fails, the next one is used.
+        API_KEY = None
+
 MODELS = [
     "gemini-3.5-flash-lite",
     "gemini-3.1-flash-lite",
@@ -19,11 +18,15 @@ MODELS = [
     "gemini-3.7-flash",
 ]
 
-MAX_MESSAGES = 40  # only the latest messages are sent to the model
+MAX_MESSAGES = 40
 
 st.set_page_config(page_title="My AI Chatbot", page_icon="💬")
 st.title("💬 My AI Chatbot")
 st.caption("Ask me anything. Your chat is private to you and clears when you close the page.")
+
+if not API_KEY:
+    st.error("No API key found. Add GEMINI_API_KEY in Secrets (or Environment).")
+    st.stop()
 
 
 @st.cache_resource
@@ -33,13 +36,12 @@ def get_client():
 
 def to_contents(messages):
     recent = messages[-MAX_MESSAGES:]
-    while recent and recent[0]["role"] != "user":  # must start with a user message
+    while recent and recent[0]["role"] != "user":
         recent = recent[1:]
     return [{"role": m["role"], "parts": [{"text": m["text"]}]} for m in recent]
 
 
 def get_reply(messages):
-   def get_reply(messages):
     client = get_client()
     errors = []
     for model in MODELS:
@@ -53,23 +55,19 @@ def get_reply(messages):
     return None, "\n\n".join(errors)
 
 
-# Each visitor gets their own chat, stored only in their own session
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Sidebar
 with st.sidebar:
     st.header("Options")
     if st.button("🗑️ Clear chat"):
         st.session_state.messages = []
         st.rerun()
 
-# Show the earlier messages
 for m in st.session_state.messages:
     with st.chat_message("user" if m["role"] == "user" else "assistant"):
         st.markdown(m["text"])
 
-# Chat box at the bottom of the page
 prompt = st.chat_input("Type your message...")
 if prompt:
     with st.chat_message("user"):
@@ -78,11 +76,12 @@ if prompt:
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
-            reply = get_reply(st.session_state.messages)
+            reply, err = get_reply(st.session_state.messages)
 
         if reply is None:
-            st.error("All models are busy or failed. Please try again in a minute.")
-            st.session_state.messages.pop()  # forget the message that got no answer
+            st.error("All models failed. Details below:")
+            st.code(err)
+            st.session_state.messages.pop()
         else:
             st.markdown(reply)
             st.session_state.messages.append({"role": "model", "text": reply})
