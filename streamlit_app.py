@@ -2,11 +2,15 @@ import streamlit as st
 from google import genai
 
 # On Streamlit Cloud the key comes from "Secrets" (safe).
-try:
-    API_KEY = st.secrets["GEMINI_API_KEY"]
-except Exception:
-    API_KEY = "your-gemini-key-here"  # LOCAL ONLY
+import os
 
+API_KEY = os.environ.get("AQ.Ab8RN6KfugFN8KNTcgeqmwyByrsBXGwFSwz5CNtC0SRHo3B4Rg")
+if not API_KEY:
+    try:
+        API_KEY = st.secrets["AQ.Ab8RN6KfugFN8KNTcgeqmwyByrsBXGwFSwz5CNtC0SRHo3B4Rg"]
+    except Exception:
+        API_KEY = "AQ.Ab8RN6KfugFN8KNTcgeqmwyByrsBXGwFSwz5CNtC0SRHo3B4Rg"  # LOCAL ONLY
+        
 # Models are tried in order. If one is busy or fails, the next one is used.
 MODELS = [
     "gemini-3.5-flash-lite",
