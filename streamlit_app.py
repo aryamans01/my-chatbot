@@ -35,16 +35,18 @@ def to_contents(messages):
 
 
 def get_reply(messages):
+   def get_reply(messages):
     client = get_client()
+    errors = []
     for model in MODELS:
         try:
             response = client.models.generate_content(
                 model=model, contents=to_contents(messages)
             )
-            return response.text or "I couldn't think of a reply. Try asking differently."
+            return response.text or "I couldn't think of a reply. Try asking differently.", None
         except Exception as e:
-            print(f"{model} failed: {str(e)[:100]}")
-    return None
+            errors.append(f"{model}: {str(e)[:200]}")
+    return None, "\n\n".join(errors)
 
 
 # Each visitor gets their own chat, stored only in their own session
