@@ -8,7 +8,7 @@ from google.genai import types
 st.set_page_config(page_title="Motivation Bot ",  layout="centered")
 
 st.title("Motivation Bot")
-st.caption("Don't expect any sympathy here.")
+st.caption("Come and tell your problem you Are facing , .")
 
 # 1. Secure API Key Loading
 api_key = os.getenv("GEMINI_API_KEY")
@@ -48,7 +48,7 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # 4. Handle User Input
-if user_input := st.chat_input("Say something (at your own risk)..."):
+if user_input := st.chat_input("Please free feel to share"):
     # Add user message to state & UI
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
@@ -57,7 +57,7 @@ if user_input := st.chat_input("Say something (at your own risk)..."):
     # Generate assistant response with retry logic
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
-        message_placeholder.markdown("*Thinking of a rude comeback...*")
+        message_placeholder.markdown("*Please Wait Searching*")
         
         response_text = ""
         for attempt in range(4):
