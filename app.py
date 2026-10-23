@@ -29,7 +29,7 @@ client = get_gemini_client(api_key)
 # 3. Initialize Chat Session in Session State (preserves memory)
 if "chat_session" not in st.session_state:
     st.session_state.chat_session = client.chats.create(
-        model="gemini-3.6-flash",
+        model="gemini-3.5-flash",
         config=types.GenerateContentConfig(
             system_instruction=(
                 "You are a girlfriend who is very strict and mean to the user. "
