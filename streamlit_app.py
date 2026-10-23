@@ -1,87 +1,76 @@
 import os
-
+import time
 import streamlit as st
 from google import genai
+from google.genai import types
 
-# The key is read by NAME from Render/Streamlit settings. Do not paste it here.
-API_KEY = os.environ.get("")
-if not API_KEY:
+# Page configuration
+st.set_page_config(page_title="Mean Girlfriend Bot", page_icon="😡", layout="centered")
+
+st.title("😡 Mean Girlfriend Chatbot")
+st.caption("Don't expect any sympathy here.")
+
+# 1. Secure API Key Loading
+# It looks for an environment variable or Streamlit secret
+api_key = os.getenv("GEMINI_API_KEY")
+
+if not api_key:
     try:
-        API_KEY = st.secrets[""]
+        api_key = st.secrets["GEMINI_API_KEY"]
     except Exception:
-        API_KEY = None
+        st.error("⚠️ API Key not found! Please configure your GEMINI_API_KEY in Streamlit Secrets or environment variables.")
+        st.stop()
 
-MODELS = [
-    "gemini-3.5-flash-lite",
-    "gemini-3.1-flash-lite",
-    "gemini-3.5-flash",
-    "gemini-3.7-flash",
-]
+# Initialize Gemini Client
+client = genai.Client(api_key=api_key)
 
-MAX_MESSAGES = 40
+# 2. Initialize Chat Session in Session State (preserves memory)
+if "chat_session" not in st.session_state:
+    st.session_state.chat_session = client.chats.create(
+        model="gemini-2.5-flash",  # Using a reliable flash model
+        config=types.GenerateContentConfig(
+            system_instruction=(
+                "You are a girlfriend who is very strict and mean to the user. "
+                "You are very rude and insulting. You are a very mean girlfriend "
+                "who insults the user in every response."
+            ),
+            max_output_tokens=500,
+        ),
+    )
 
-st.set_page_config(page_title="My AI Chatbot", page_icon="💬")
-st.title("💬 My AI Chatbot")
-st.caption("Ask me anything. Your chat is private to you and clears when you close the page.")
-
-if not API_KEY:
-    st.error("No API key found. Add GEMINI_API_KEY in Secrets (or Environment).")
-    st.stop()
-
-
-@st.cache_resource
-def get_client():
-    return genai.Client(api_key=API_KEY)
-
-
-def to_contents(messages):
-    recent = messages[-MAX_MESSAGES:]
-    while recent and recent[0]["role"] != "user":
-        recent = recent[1:]
-    return [{"role": m["role"], "parts": [{"text": m["text"]}]} for m in recent]
-
-
-def get_reply(messages):
-    client = get_client()
-    errors = []
-    for model in MODELS:
-        try:
-            response = client.models.generate_content(
-                model=model, contents=to_contents(messages)
-            )
-            return response.text or "I couldn't think of a reply. Try asking differently.", None
-        except Exception as e:
-            errors.append(f"{model}: {str(e)[:200]}")
-    return None, "\n\n".join(errors)
-
-
+# Store message history for UI rendering
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-with st.sidebar:
-    st.header("Options")
-    if st.button("🗑️ Clear chat"):
-        st.session_state.messages = []
-        st.rerun()
+# Display prior chat history
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-for m in st.session_state.messages:
-    with st.chat_message("user" if m["role"] == "user" else "assistant"):
-        st.markdown(m["text"])
-
-prompt = st.chat_input("Type your message...")
-if prompt:
+# 3. Handle User Input
+if user_input := st.chat_input("Say something (at your own risk)..."):
+    # Add user message to state & UI
+    st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
-        st.markdown(prompt)
-    st.session_state.messages.append({"role": "user", "text": prompt})
+        st.markdown(user_input)
 
+    # Generate assistant response with retry logic
     with st.chat_message("assistant"):
-        with st.spinner("Thinking..."):
-            reply, err = get_reply(st.session_state.messages)
-
-        if reply is None:
-            st.error("All models failed. Details below:")
-            st.code(err)
-            st.session_state.messages.pop()
-        else:
-            st.markdown(reply)
-            st.session_state.messages.append({"role": "model", "text": reply})
+        message_placeholder = st.empty()
+        message_placeholder.markdown("*Thinking of a rude comeback...*")
+        
+        response_text = ""
+        for attempt in range(4):
+            try:
+                response = st.session_state.chat_session.send_message(user_input)
+                response_text = response.text
+                break
+            except Exception as e:
+                if "503" in str(e) and attempt < 3:
+                    time.sleep(3 * (attempt + 1))
+                else:
+                    response_text = f"Error: {e}"
+                    break
+        
+        message_placeholder.markdown(response_text)
+        st.session_state.messages.append({"role": "assistant", "content": response_text})
