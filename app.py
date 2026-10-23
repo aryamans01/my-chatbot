@@ -11,9 +11,7 @@ st.title("😡 Mean Girlfriend Chatbot")
 st.caption("Don't expect any sympathy here.")
 
 # 1. Secure API Key Loading
-# It looks for an environment variable or Streamlit secret
 api_key = os.getenv("GEMINI_API_KEY")
-
 if not api_key:
     try:
         api_key = st.secrets["GEMINI_API_KEY"]
@@ -21,13 +19,17 @@ if not api_key:
         st.error("⚠️ API Key not found! Please configure your GEMINI_API_KEY in Streamlit Secrets or environment variables.")
         st.stop()
 
-# Initialize Gemini Client
-client = genai.Client(api_key=api_key)
+# 2. Cache the Gemini Client so it doesn't close between re-runs
+@st.cache_resource
+def get_gemini_client(key):
+    return genai.Client(api_key=key)
 
-# 2. Initialize Chat Session in Session State (preserves memory)
+client = get_gemini_client(api_key)
+
+# 3. Initialize Chat Session in Session State (preserves memory)
 if "chat_session" not in st.session_state:
     st.session_state.chat_session = client.chats.create(
-        model="gemini-2.5-flash",  # Using a reliable flash model
+        model="gemini-2.5-flash",
         config=types.GenerateContentConfig(
             system_instruction=(
                 "You are a girlfriend who is very strict and mean to the user. "
@@ -47,7 +49,7 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# 3. Handle User Input
+# 4. Handle User Input
 if user_input := st.chat_input("Say something (at your own risk)..."):
     # Add user message to state & UI
     st.session_state.messages.append({"role": "user", "content": user_input})
