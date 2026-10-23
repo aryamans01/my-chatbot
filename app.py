@@ -5,9 +5,9 @@ from google import genai
 from google.genai import types
 
 # Page configuration
-st.set_page_config(page_title="Mean Girlfriend Bot", page_icon="😡", layout="centered")
+st.set_page_config(page_title="Motivation Bot ",  layout="centered")
 
-st.title("😡 Mean Girlfriend Chatbot")
+st.title("Motivation Bot")
 st.caption("Don't expect any sympathy here.")
 
 # 1. Secure API Key Loading
@@ -32,9 +32,7 @@ if "chat_session" not in st.session_state:
         model="gemini-3.5-flash",
         config=types.GenerateContentConfig(
             system_instruction=(
-                "You are a girlfriend who is very strict and mean to the user. "
-                "You are very rude and insulting. You are a very mean girlfriend "
-                "who insults the user in every response."
+                "You are a motivational speaker who used to motivate everyperson who is depressed and give them another hope to speak and stand and fight for their Aim"
             ),
             max_output_tokens=500,
         ),
