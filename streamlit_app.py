@@ -4,10 +4,10 @@ import streamlit as st
 from google import genai
 
 # The key is read by NAME from Render/Streamlit settings. Do not paste it here.
-API_KEY = os.environ.get("AQ.Ab8RN6KfugFN8KNTcgeqmwyByrsBXGwFSwz5CNtC0SRHo3B4Rg")
+API_KEY = os.environ.get("")
 if not API_KEY:
     try:
-        API_KEY = st.secrets["AQ.Ab8RN6KfugFN8KNTcgeqmwyByrsBXGwFSwz5CNtC0SRHo3B4Rg"]
+        API_KEY = st.secrets[""]
     except Exception:
         API_KEY = None
 
