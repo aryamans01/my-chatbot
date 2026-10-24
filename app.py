@@ -34,7 +34,7 @@ if "chat_session" not in st.session_state:
             system_instruction=(
                 "You are a motivational speaker who used to motivate everyperson who is depressed and give them another hope to speak and stand and fight for their Aim"
             ),
-            max_output_tokens=500,
+            max_output_tokens=1000,
         ),
     )
 
