@@ -1,76 +1,36 @@
-import os
 import time
-import streamlit as st
-from google import genai
+from google import genai 
 from google.genai import types
 
-# Page configuration
-st.set_page_config(page_title="Motivation Bot ",  layout="centered")
+client = genai.Client(api_key="AQ.Ab8RN6ITQxyo0x0nqWbZRVdgRTMkYGrBCYdRcCZ7ag07NH5hJA")
 
-st.title("Motivation Bot")
-st.caption("Come and tell your problem you Are facing , .")
+chat = client.chats.create(
+    model="gemini-3.5-flash-lite",
+    config=types.GenerateContentConfig(
+        system_instruction="You are an assistant with excellent knowledge who can answer any questions. You are helpful, creative, clever, and friendly. You can also provide relationship advice and health and fitness tips.You also help in relationship advice and health and fitness tips. You are also a good friend and can provide emotional support. You are also a good friend and",
+        max_output_tokens=1000,
+    ),
+)
 
-# 1. Secure API Key Loading
-api_key = os.getenv("GEMINI_API_KEY")
-if not api_key:
-    try:
-        api_key = st.secrets["GEMINI_API_KEY"]
-    except Exception:
-        st.error("⚠️ API Key not found! Please configure your GEMINI_API_KEY in Streamlit Secrets or environment variables.")
-        st.stop()
+print("Welcome you ! Type your message and press Enter. Type 'quit' to stop.")
 
-# 2. Cache the Gemini Client so it doesn't close between re-runs
-@st.cache_resource
-def get_gemini_client(key):
-    return genai.Client(api_key=key)
+while True:
+    user_input = input("You: ").strip()
 
-client = get_gemini_client(api_key)
+    if user_input.lower() in ("quit", "exit"):
+        break
+    if not user_input:
+        continue
 
-# 3. Initialize Chat Session in Session State (preserves memory)
-if "chat_session" not in st.session_state:
-    st.session_state.chat_session = client.chats.create(
-        model="gemini-3.5-flash",
-        config=types.GenerateContentConfig(
-            system_instruction=(
-                "You are a motivational speaker who used to motivate everyperson who is depressed and give them another hope to speak and stand and fight for their Aim"
-            ),
-            max_output_tokens=1000,
-        ),
-    )
-
-# Store message history for UI rendering
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# Display prior chat history
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-# 4. Handle User Input
-if user_input := st.chat_input("Please free feel to share"):
-    # Add user message to state & UI
-    st.session_state.messages.append({"role": "user", "content": user_input})
-    with st.chat_message("user"):
-        st.markdown(user_input)
-
-    # Generate assistant response with retry logic
-    with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        message_placeholder.markdown("*Please Wait Searching*")
-        
-        response_text = ""
-        for attempt in range(4):
-            try:
-                response = st.session_state.chat_session.send_message(user_input)
-                response_text = response.text
+    for attempt in range(4):  # try up to 4 times
+        try:
+            response = chat.send_message(user_input)
+            print("Bot:", response.text)
+            break
+        except Exception as e:
+            if "503" in str(e) and attempt < 3:
+                print("Google is busy, retrying...")
+                time.sleep(3 * (attempt + 1))  # wait 3s, 6s, 9s
+            else:
+                print("Error:", e)
                 break
-            except Exception as e:
-                if "503" in str(e) and attempt < 3:
-                    time.sleep(3 * (attempt + 1))
-                else:
-                    response_text = f"Error: {e}"
-                    break
-        
-        message_placeholder.markdown(response_text)
-        st.session_state.messages.append({"role": "assistant", "content": response_text})
