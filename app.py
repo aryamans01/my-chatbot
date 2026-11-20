@@ -29,7 +29,7 @@ while True:
             break
         except Exception as e:
             if "503" in str(e) and attempt < 3:
-                print("Google is busy, retrying...")
+                print(" Sorry for taking time , retrying...")
                 time.sleep(3 * (attempt + 1))  # wait 3s, 6s, 9s
             else:
                 print("Error:", e)
